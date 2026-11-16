@@ -12,3 +12,5 @@ server/dist
 server/uploads
 *.log
 .DS_Store
+
+*.tsbuildinfo

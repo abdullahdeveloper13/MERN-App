@@ -12,5 +12,5 @@
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "test"]
+  "include": ["src"]
 }

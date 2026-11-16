@@ -1,29 +1,27 @@
 services:
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
   server:
     build:
-      context: ./server
+      context: .
+      dockerfile: server/Dockerfile
+    image: hiresphere-server:latest
+    restart: unless-stopped
     env_file:
       - ./.env
+    environment:
+      NODE_ENV: production
     ports:
       - "5000:5000"
-    depends_on:
-      - mongo
 
   client:
     build:
-      context: ./client
-    ports:
-      - "5173:5173"
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        VITE_API_URL: /api/v1
+    image: hiresphere-client:latest
+    restart: unless-stopped
     depends_on:
-      - server
-
-volumes:
-  mongo_data:
+      server:
+        condition: service_healthy
+    ports:
+      - "5173:80"
