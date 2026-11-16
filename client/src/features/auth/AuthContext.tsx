@@ -102,9 +102,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const logout = useCallback(async () => {
     try {
       await api.post("/auth/logout");
+    } catch {
+      // A failed logout request must not keep the client signed in.
     } finally {
-      queryClient.clear();
       queryClient.setQueryData<MeResponse | null>(["auth", "me"], null);
+      queryClient.removeQueries({
+        predicate: (query) => !(query.queryKey[0] === "auth" && query.queryKey[1] === "me")
+      });
     }
   }, [queryClient]);
 

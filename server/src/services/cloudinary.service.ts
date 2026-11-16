@@ -95,10 +95,11 @@ export async function deleteAsset(
 export function getPrivateDocumentUrl(publicId: string): string {
   assertConfigured();
 
-  return cloudinary.url(publicId, {
+  const dotIndex = publicId.lastIndexOf(".");
+  const format = dotIndex > -1 ? publicId.slice(dotIndex + 1).toLowerCase() : "pdf";
+
+  return cloudinary.utils.private_download_url(publicId, format, {
     resource_type: "raw",
-    type: "authenticated",
-    sign_url: true,
-    secure: true
+    type: "authenticated"
   });
 }

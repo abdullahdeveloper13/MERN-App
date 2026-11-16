@@ -102,8 +102,8 @@ export function DashboardLayout() {
   const unread = notificationsQuery.data?.unread ?? 0;
 
   const handleLogout = async () => {
+    navigate("/", { replace: true });
     await logout();
-    navigate("/login", { replace: true });
   };
 
   const sidebar = (
