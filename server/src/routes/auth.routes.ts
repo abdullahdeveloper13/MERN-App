@@ -13,7 +13,7 @@ import {
   resetPasswordController,
   verifyEmailController
 } from "../controllers/auth.controller.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, optionalAuthenticate } from "../middleware/auth.js";
 import { authLimiter } from "../middleware/rateLimit.js";
 import { validate } from "../middleware/validate.js";
 import {
@@ -44,7 +44,7 @@ authRouter.post(
 );
 authRouter.post("/google", authLimiter, validate({ body: googleLoginSchema }), googleLoginController);
 authRouter.get("/google/config", googleConfigController);
-authRouter.get("/me", authenticate, meController);
+authRouter.get("/me", optionalAuthenticate, meController);
 authRouter.post(
   "/change-password",
   authenticate,

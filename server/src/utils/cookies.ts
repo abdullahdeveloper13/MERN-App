@@ -5,8 +5,28 @@ import { parseDurationMs } from "./tokens.js";
 export const ACCESS_COOKIE = "hs_access";
 export const REFRESH_COOKIE = "hs_refresh";
 
-function baseCookieOptions(maxAge: number): CookieOptions {
-  const secure = env.COOKIE_SECURE ?? env.NODE_ENV === "production";
+function isSecureRequest(res: Response): boolean {
+  const req = res.req;
+
+  if (!req) {
+    return env.NODE_ENV === "production";
+  }
+
+  if (req.secure) {
+    return true;
+  }
+
+  const header = req.headers["x-forwarded-proto"];
+  const value = Array.isArray(header) ? header[0] : header;
+
+  return value?.split(",")[0]?.trim().toLowerCase() === "https";
+}
+
+function baseCookieOptions(maxAge: number, res: Response): CookieOptions {
+  const secure =
+    isSecureRequest(res) ||
+    env.COOKIE_SECURE === true ||
+    (env.COOKIE_SECURE === undefined && env.NODE_ENV === "production");
 
   return {
     httpOnly: true,
@@ -22,12 +42,12 @@ export function setAuthCookies(res: Response, accessToken: string, refreshToken:
   const accessMaxAge = parseDurationMs(env.JWT_ACCESS_EXPIRES_IN, 15 * 60_000);
   const refreshMaxAge = parseDurationMs(env.JWT_REFRESH_EXPIRES_IN, 30 * 86_400_000);
 
-  res.cookie(ACCESS_COOKIE, accessToken, baseCookieOptions(accessMaxAge));
-  res.cookie(REFRESH_COOKIE, refreshToken, baseCookieOptions(refreshMaxAge));
+  res.cookie(ACCESS_COOKIE, accessToken, baseCookieOptions(accessMaxAge, res));
+  res.cookie(REFRESH_COOKIE, refreshToken, baseCookieOptions(refreshMaxAge, res));
 }
 
 export function clearAuthCookies(res: Response): void {
-  const options = baseCookieOptions(0);
+  const options = baseCookieOptions(0, res);
   res.clearCookie(ACCESS_COOKIE, { ...options, maxAge: undefined });
   res.clearCookie(REFRESH_COOKIE, { ...options, maxAge: undefined });
 }

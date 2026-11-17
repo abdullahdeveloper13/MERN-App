@@ -1,6 +1,6 @@
 import type { Server as HttpServer } from "node:http";
 import { Server as SocketServer } from "socket.io";
-import { env } from "../config/env.js";
+import { isOriginAllowed } from "../config/origins.js";
 import { Conversation } from "../models/Conversation.js";
 import { User } from "../models/User.js";
 import { ACCESS_COOKIE } from "../utils/cookies.js";
@@ -23,7 +23,12 @@ function parseCookies(cookieHeader?: string): Record<string, string> {
 
 export function initSocket(server: HttpServer): SocketServer {
   io = new SocketServer(server, {
-    cors: { origin: env.CLIENT_URL, credentials: true }
+    cors: {
+      origin(origin, callback) {
+        callback(null, isOriginAllowed(origin));
+      },
+      credentials: true
+    }
   });
 
   io.use(async (socket, next) => {

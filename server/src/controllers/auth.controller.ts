@@ -48,6 +48,33 @@ async function issueSession(
   return accessToken;
 }
 
+async function rotateSessionFromCookie(req: Request, res: Response) {
+  const rawToken = req.cookies?.[REFRESH_COOKIE];
+
+  if (typeof rawToken !== "string" || rawToken.length === 0) {
+    return null;
+  }
+
+  try {
+    const { userId, refreshToken } = await rotateRefreshToken(rawToken, {
+      userAgent: req.headers["user-agent"],
+      ipAddress: req.ip
+    });
+    const user = await User.findById(userId);
+
+    if (!user || !user.isActive) {
+      clearAuthCookies(res);
+      return null;
+    }
+
+    setAuthCookies(res, signAccessToken(user._id.toString(), user.role), refreshToken);
+    return user;
+  } catch {
+    clearAuthCookies(res);
+    return null;
+  }
+}
+
 export async function registerController(req: Request, res: Response) {
   const { name, email, password, role } = req.body as {
     name: string;
@@ -100,22 +127,30 @@ export async function refreshController(req: Request, res: Response) {
   const rawToken = req.cookies?.[REFRESH_COOKIE];
 
   if (typeof rawToken !== "string" || rawToken.length === 0) {
-    throw new AppError(401, "Refresh token not provided.");
+    return res.status(204).send();
   }
 
-  const { userId, refreshToken } = await rotateRefreshToken(rawToken, {
-    userAgent: req.headers["user-agent"],
-    ipAddress: req.ip
-  });
+  let rotated: { userId: string; refreshToken: string };
 
-  const user = await User.findById(userId);
+  try {
+    rotated = await rotateRefreshToken(rawToken, {
+      userAgent: req.headers["user-agent"],
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    clearAuthCookies(res);
+    throw error;
+  }
+
+  const user = await User.findById(rotated.userId);
 
   if (!user || !user.isActive) {
+    clearAuthCookies(res);
     throw new AppError(401, "Account is unavailable.");
   }
 
   const accessToken = signAccessToken(user._id.toString(), user.role);
-  setAuthCookies(res, accessToken, refreshToken);
+  setAuthCookies(res, accessToken, rotated.refreshToken);
 
   return sendSuccess(res, 200, { user, accessToken });
 }
@@ -187,10 +222,14 @@ export async function resendVerificationController(req: Request, res: Response) 
 }
 
 export async function meController(req: Request, res: Response) {
-  const user = await User.findById(req.user!.id);
+  let user = req.user ? await User.findById(req.user.id) : null;
 
   if (!user) {
-    throw new AppError(404, "Account not found.");
+    user = await rotateSessionFromCookie(req, res);
+  }
+
+  if (!user) {
+    return sendSuccess(res, 200, { user: null, profile: null, company: null });
   }
 
   const [profile, company] =

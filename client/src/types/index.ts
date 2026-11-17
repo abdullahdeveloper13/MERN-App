@@ -218,7 +218,7 @@ export interface ApiEnvelope<T> {
 }
 
 export interface MeResponse {
-  user: User;
+  user: User | null;
   profile: JobSeekerProfile | RecruiterProfile | null;
   company: Company | null;
 }

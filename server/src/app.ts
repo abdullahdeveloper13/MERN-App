@@ -5,10 +5,25 @@ import helmet from "helmet";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import { env } from "./config/env.js";
+import { allowedOrigins, isOriginAllowed } from "./config/origins.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.js";
 import { apiLimiter } from "./middleware/rateLimit.js";
 import { sanitizeRequest } from "./middleware/sanitize.js";
 import { apiRouter } from "./routes/index.js";
+
+const warnedOrigins = new Set<string>();
+
+function warnBlockedOrigin(origin: string): void {
+  if (env.NODE_ENV === "test" || warnedOrigins.has(origin)) {
+    return;
+  }
+
+  warnedOrigins.add(origin);
+  console.warn(
+    `[cors] Blocked origin "${origin}". Allowed origins: ${allowedOrigins().join(", ") || "none"}. ` +
+      "Set CLIENT_URL or CORS_ORIGINS to the deployed client origin."
+  );
+}
 
 export function createApp() {
   const app = express();
@@ -22,14 +37,19 @@ export function createApp() {
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || origin === env.CLIENT_URL) {
+        if (isOriginAllowed(origin)) {
           callback(null, true);
           return;
         }
 
-        callback(new Error("Origin is not allowed by CORS."));
+        warnBlockedOrigin(origin as string);
+        callback(null, false);
       },
-      credentials: true
+      credentials: true,
+      methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      exposedHeaders: ["RateLimit", "RateLimit-Policy", "Retry-After"],
+      optionsSuccessStatus: 204,
+      maxAge: 86_400
     })
   );
   app.use(express.json({ limit: "1mb" }));

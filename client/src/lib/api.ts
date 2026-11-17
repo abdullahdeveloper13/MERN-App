@@ -21,7 +21,7 @@ async function tryRefresh(): Promise<boolean> {
     method: "POST",
     credentials: "include"
   })
-    .then((response) => response.ok)
+    .then((response) => response.status !== 204 && response.ok)
     .catch(() => false)
     .finally(() => {
       refreshPromise = null;

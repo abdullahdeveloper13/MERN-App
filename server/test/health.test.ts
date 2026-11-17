@@ -40,8 +40,24 @@ describe("API smoke tests", () => {
     expect(response.body.message).toBe("Validation failed.");
   });
 
-  it("rejects anonymous access to protected routes", async () => {
+  it("returns an empty session for anonymous visitors", async () => {
     const response = await request(app).get("/api/v1/auth/me");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      success: true,
+      data: { user: null, profile: null, company: null }
+    });
+  });
+
+  it("returns no content when refreshing without a session cookie", async () => {
+    const response = await request(app).post("/api/v1/auth/refresh");
+
+    expect(response.status).toBe(204);
+  });
+
+  it("rejects anonymous access to protected routes", async () => {
+    const response = await request(app).post("/api/v1/auth/change-password").send({});
 
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);

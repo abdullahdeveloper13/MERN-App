@@ -26,6 +26,8 @@ const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().default(5000),
   CLIENT_URL: z.string().default("http://localhost:5173"),
+  CORS_ORIGINS: z.string().optional(),
+  RENDER_EXTERNAL_URL: z.string().optional(),
   MONGODB_URI: z.string().min(1),
   MONGODB_DB_NAME: z.string().default("hiresphere"),
   JWT_ACCESS_SECRET: z.string().min(16),

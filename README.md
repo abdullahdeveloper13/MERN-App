@@ -58,7 +58,7 @@ At minimum, configure:
 
 Cloudinary, email, Google sign-in, and AI are optional at startup. Their features return clear configuration errors when they are not set. Uploads require Cloudinary; verification and reset links require email transport.
 
-For production, set `NODE_ENV=production`, `COOKIE_SECURE=true`, and serve the client over HTTPS. Set `CLIENT_URL` to the public client origin, and make the API and WebSocket endpoints reachable through the same origin or update the Nginx proxy accordingly.
+For production, set `NODE_ENV=production` and serve the client over HTTPS. Set `CLIENT_URL` to the public client origin. When the client and API use different domains, also list every client origin in `CORS_ORIGINS` (comma-separated) and set `VITE_API_URL` to the absolute API URL, for example `https://api.example.com/api/v1`. Authentication cookies are automatically marked `Secure` and `SameSite=None` on HTTPS so cross-domain sessions work; set `COOKIE_SECURE=true` only when TLS terminates before the request reaches Node.
 
 ## Scripts
 
